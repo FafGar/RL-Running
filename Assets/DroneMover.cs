@@ -20,7 +20,7 @@ public class DroneMover : MonoBehaviour
     Rigidbody body;
 
     NeuralNet RLClient;
-    float [] inputs;
+    double [] inputs;
 
 
     int xAxisOkay(){
@@ -83,8 +83,8 @@ public class DroneMover : MonoBehaviour
         startPos = transform.position;
 
         this.RLClient = new NeuralNet();
-        this.RLClient.init(5,6,12);
-        this.inputs = new float[5];
+        this.RLClient.init(5,6,12, 0.9d , 0.7d);
+        this.inputs = new double[6];
         this.inputs[4] = 0;
 
     }
@@ -92,19 +92,19 @@ public class DroneMover : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        this.inputs[0] = transform.rotation.x;
-        this.inputs[1] = transform.rotation.z;
-        this.inputs[2] = transform.position.x-target.transform.position.x;
-        this.inputs[3] = transform.position.z-target.transform.position.z;
+        this.inputs[1] = (double)transform.rotation.x;
+        this.inputs[2] = transform.rotation.z;
+        this.inputs[3] = transform.position.x-target.transform.position.x;
+        this.inputs[4] = transform.position.z-target.transform.position.z;
         
 
         int RLOutput = RLClient.evaluate(inputs);
         print(RLOutput);
         int reward = 0;
-        if(this.inputs[4] == RLOutput && RLOutput !=6){
+        if(this.inputs[0] == RLOutput && RLOutput !=6){
             reward -= 5;
         } else reward+=4;
-        this.inputs[4] = RLOutput;
+        this.inputs[0] = RLOutput;
         switch (RLOutput)
         {
             case 0:
