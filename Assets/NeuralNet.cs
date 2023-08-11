@@ -169,6 +169,7 @@ public class NeuralNet
         double max = 0;
         double [] newQs = new double[4];
         for(int i =0; i<this.numInputs; i++){
+            inputs[0] = i;
             this.evaluate(inputs);
             if(this.actionVals[this.outputLayerMaxI] > max){
                 max = this.actionVals[this.outputLayerMaxI];
