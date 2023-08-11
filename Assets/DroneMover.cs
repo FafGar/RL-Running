@@ -30,8 +30,8 @@ public class DroneMover : MonoBehaviour
     }
     int zAxisOkay(){
         if(transform.rotation.eulerAngles.z > -15f && 
-            transform.rotation.eulerAngles.z < 15f) return 2;
-        return -3;
+            transform.rotation.eulerAngles.z < 15f) return 0;
+        return -9;
     }
 
     int directionCheckRight(){
@@ -61,15 +61,16 @@ public class DroneMover : MonoBehaviour
         float oldDist = (oldPos-target.transform.position).magnitude;
         oldPos = transform.position;
         
-        if(oldDist - dist  > -0.0005 && oldDist - dist < 0.0005) {
+        if(oldDist - dist  > -0.0002 && oldDist - dist < 0.0002) {
+            Debug.Log("stopped");
             // Debug.Log(moveTimer);
             moveTimer += Time.deltaTime;
-            return -3; // mild penalty for staying still
-        }else if(oldDist - dist > 0.0005) {
+            return -8; // mild penalty for staying still
+        }else if(oldDist - dist > 0.0002) {
             moveTimer = 0;
             return 5; //Reward on move forward
         }
-        return -5; //BIG penalty for moving backwards
+        return -12; //BIG penalty for moving backwards
     }
 
 
@@ -83,9 +84,9 @@ public class DroneMover : MonoBehaviour
         startPos = transform.position;
 
         this.RLClient = new NeuralNet();
-        this.RLClient.init(5,6,12, 0.9d , 0.7d);
+        this.RLClient.init(6,7,12, 0.9d , 2d);
         this.inputs = new double[6];
-        this.inputs[4] = 0;
+        this.inputs[0] = 0;
 
     }
 
@@ -99,12 +100,12 @@ public class DroneMover : MonoBehaviour
         
 
         int RLOutput = RLClient.evaluate(inputs);
-        print(RLOutput);
         int reward = 0;
-        if(this.inputs[0] == RLOutput && RLOutput !=6){
-            reward -= 5;
-        } else reward+=4;
+        // if(this.inputs[0] == RLOutput && RLOutput != 6){
+        //     reward -= 5;
+        // } else reward+=4;
         this.inputs[0] = RLOutput;
+        Debug.Log(RLOutput);
         switch (RLOutput)
         {
             case 0:
@@ -128,28 +129,26 @@ public class DroneMover : MonoBehaviour
             case 6:
                 break;
         }
-        // if(Input.GetKey(KeyCode.U)){
-        //     if(leftState==wheelstate.FORWARD) leftState=wheelstate.OFF;
-        //     else leftState=wheelstate.FORWARD;
-        // }
-        // if(Input.GetKey(KeyCode.J)){
-        //     if(leftState==wheelstate.BACKWARD) leftState=wheelstate.OFF;
-        //     else leftState=wheelstate.BACKWARD;
-        // }
-        // if(Input.GetKey(KeyCode.I)){
-        //     if(rightState==wheelstate.FORWARD) rightState=wheelstate.OFF;
-        //     else rightState=wheelstate.FORWARD;
-        // }
-        // if(Input.GetKey(KeyCode.K)){
-        //     if(rightState==wheelstate.BACKWARD) rightState=wheelstate.OFF;
-        //     else rightState=wheelstate.BACKWARD;
+        // switch (RLOutput)
+        // {
+        //     case 0:
+        //         leftState=wheelstate.FORWARD;
+        //         break;
+        //     case 1:
+        //         leftState=wheelstate.BACKWARD;
+        //         break;
+        //     case 2:
+        //         leftState=wheelstate.FORWARD;
+        //         break;
+        //     case 3:
+        //         leftState=wheelstate.BACKWARD;
+        //         break;
+        //     case 4:
+        //         break;
         // }
         
         rightWheel.motorTorque = (int)rightState;
         leftWheel.motorTorque = (int)leftState;
-        // if(leftState != 0){/
-        //     leftWheel.r
-        // }
         body.AddForce(transform.up*40);
         Debug.Log(rightState);
 
@@ -157,20 +156,23 @@ public class DroneMover : MonoBehaviour
 
         if(transform.position.y < 0 || moveTimer > 3.0){
             Debug.Log("Resetting");
-            RLClient.train((int)(27-Mathf.Abs((target.transform.position-transform.position).magnitude)), 0.3);
             transform.position = new Vector3(0,0.9f,0);
             transform.rotation = Quaternion.identity;
+            oldPos = new Vector3(0,0,1);
             moveTimer = 0;
-        }else if(Mathf.Abs(transform.rotation.x) > 70f || Mathf.Abs(transform.rotation.z) > 70f){
-            //Do Nothing
         } 
-         else{
+        else{
+            this.inputs[1] = (double)transform.rotation.x;
+            this.inputs[2] = transform.rotation.z;
+            this.inputs[3] = transform.position.x-target.transform.position.x;
+            this.inputs[4] = transform.position.z-target.transform.position.z;
             reward = xAxisOkay();
             reward += zAxisOkay();
             reward += directionCheckLeft();
             reward += directionCheckRight();
             reward += distanceCheck();
-            RLClient.train(reward, 0.1);
+            Debug.Log("Reward " + reward);
+            RLClient.train(reward, this.inputs);
         }
 
 
